@@ -7,7 +7,7 @@ import (
 
 type Connection interface {
 	Response() *http.Response
-	SharedReadCloser() SharedReadCloser
+	Stream() Stream
 }
 
 func NewConnection(
@@ -16,7 +16,7 @@ func NewConnection(
 ) Connection {
 	return &connection{
 		resp: resp,
-		body: NewSharedReadCloser(
+		stream: NewStream(
 			ctx,
 			resp.Body,
 		),
@@ -24,16 +24,16 @@ func NewConnection(
 }
 
 type connection struct {
-	resp *http.Response
-	body SharedReadCloser
+	resp   *http.Response
+	stream Stream
 }
 
-func (c *connection) SharedReadCloser() SharedReadCloser {
-	return c.body
+func (c *connection) Stream() Stream {
+	return c.stream
 }
 
 func (c *connection) Response() *http.Response {
 	result := *c.resp
-	result.Body = c.body.ReadCloser()
+	result.Body = c.stream.CreateListener()
 	return &result
 }

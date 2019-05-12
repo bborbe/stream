@@ -77,14 +77,48 @@ func (a *application) run(ctx context.Context) error {
 		fmt.Fprintf(resp, `<html><body>`)
 		fmt.Fprintf(resp, `<h1>Hello</h1>`)
 
-		fmt.Fprintf(resp, `<table><tr><td>URL</td><td>Connections</td></tr>`)
+		fmt.Fprintf(resp, `<table><tr><td>URL</td><td>Connections</td><td>Size</td><td>Listeners</td></tr>`)
 		for url, data := range c.Connections() {
-			fmt.Fprintf(resp, `<tr><td>%s</td><td>%d</td></tr>`, url, data.SharedReadCloser().Counter())
+			stream := data.Stream()
+			fmt.Fprintf(resp, `<tr>`)
+			fmt.Fprintf(resp, `<td>%s</td>`, url)
+			fmt.Fprintf(resp, `<td>%d</td>`, len(stream.Listeners()))
+			fmt.Fprintf(resp, `<td>%d</td>`, stream.Size())
+			fmt.Fprintf(resp, `<td><ul>`)
+			for _, listener := range stream.Listeners() {
+				fmt.Fprintf(resp, `<li>%d</li>`, listener.Position())
+			}
+			fmt.Fprintf(resp, `</ul></td>`)
+			fmt.Fprintf(resp, `</tr>`)
 		}
 		fmt.Fprintf(resp, `</table>`)
 		fmt.Fprintf(resp, `<p>Total: %d</p>`, len(c.Connections()))
 
+		fmt.Fprintf(resp, `<p><a href="/start">jump to start</a></p>`)
+		fmt.Fprintf(resp, `<p><a href="/end">jump to end</a></p>`)
+
 		fmt.Fprintf(resp, `</body></html>`)
+	})
+	router.Path("/start").HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		for _, connection := range c.Connections() {
+			stream := connection.Stream()
+			listeners := stream.Listeners()
+			for _, listener := range listeners {
+				listener.SetPosition(0)
+			}
+		}
+		fmt.Fprintf(resp, `set pos to start`)
+	})
+	router.Path("/end").HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		for _, connection := range c.Connections() {
+			stream := connection.Stream()
+			pos := stream.Size()
+			listeners := stream.Listeners()
+			for _, listener := range listeners {
+				listener.SetPosition(pos)
+			}
+		}
+		fmt.Fprintf(resp, `set pos to end`)
 	})
 
 	proxy := goproxy.NewProxyHttpServer()

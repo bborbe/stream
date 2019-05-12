@@ -14,13 +14,13 @@ import (
 var _ = Describe("SharedReader", func() {
 	It("contains input content", func() {
 		input := bytes.NewBufferString("hello world")
-		sharedReadCloser := cache.NewSharedReadCloser(context.Background(), ioutil.NopCloser(input))
+		sharedReadCloser := cache.NewStream(context.Background(), ioutil.NopCloser(input))
 		defer sharedReadCloser.Close()
 		Expect(readAllToString(sharedReadCloser.ReadCloser())).To(Equal("hello world"))
 	})
 	It("return sample content for second reader", func() {
 		input := bytes.NewBufferString("hello world")
-		sharedReadCloser := cache.NewSharedReadCloser(context.Background(), ioutil.NopCloser(input))
+		sharedReadCloser := cache.NewStream(context.Background(), ioutil.NopCloser(input))
 		defer sharedReadCloser.Close()
 		Expect(readAllToString(sharedReadCloser.ReadCloser())).To(Equal("hello world"))
 		Expect(readAllToString(sharedReadCloser.ReadCloser())).To(Equal("hello world"))
